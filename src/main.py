@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+import numpy as np
 import urllib.request
 from xml_parser import XmlParser
 import xml.etree.cElementTree as ET
@@ -52,29 +53,56 @@ def main():
         json.dump(filings, f)
     '''
 
-    # with open('.\\data\\data.json', 'r') as f:
-    with open('..\data\data.json', 'r') as f:
+    with open('.\\data\\data.json', 'r') as f:
+    # with open('..\data\data.json', 'r') as f:
         filings = json.load(f)
 
     # Load results to DataFrame
     df = pd.DataFrame(filings['filings'])
+    df = df[['id', 'ticker','companyName','companyNameLong','formType','linkToTxt','linkToFilingDetails']]
+    for newcol in ['rptOwnerName', 'owner', 'securityTitle', 'transactionDate', 'exercisePrice', 'exerciseShares', 'expirationDate', 'transactionValue']:
+        df[newcol] = np.nan
+    for i, row in df.iterrows():
+        print(i)
+        xml = df['linkToTxt'].iloc[i]
+        xml_root = download_xml(xml)
 
-    xml = df['linkToTxt'].iloc[0]
-    xml_root = download_xml(xml)
+        derivativeTransactions = xml_root.findall("./derivativeTable/derivativeTransaction")
 
-    nonDerivativeTransactions = xml_root.findall("./derivativeTable/derivativeTransaction")
-    l =[]
+        for t in derivativeTransactions:
+            # Share info
+            securityTitle = read_tag(t, './securityTitle/value')
+            transactionDate = read_tag(t, './transactionDate/value')
+            exerciseShares = float(read_tag(t, './transactionAmounts/transactionShares/value'))
+            
+            if securityTitle == 'Stock Options':
+                expirationDate = read_tag(t, './expirationDate/value')
+                exercisePrice = float(read_tag(t, './transactionAmounts/transactionPricePerShare/value'))
+            else:
+                expirationDate = ''
+                exercisePrice = 0
+            transactionValue = exercisePrice * exerciseShares
 
-    for t in nonDerivativeTransactions:
-        securityTitle = t.find('./securityTitle/value').text
-        transactionDate = t.find('./transactionDate/value').text
-        exerciseShares = t.find('./transactionAmounts/transactionShares/value').text
-        exercisePrice = t.find('./transactionAmounts/transactionPricePerShare/value').text
-        expirationDate = t.find('./expirationDate/value').text
-        print(securityTitle, transactionDate, exercisePrice, exerciseShares, expirationDate)
-        l.append(transactionDate)
+            # Owner Relationship
+            owner = xml_root.findall("./reportingOwner")[0]
+            rptOwnerName = read_tag(owner, './reportingOwnerId/rptOwnerName')
+            isDirector = int(read_tag(owner, './reportingOwnerRelationship/isDirector', 0))
+            isOfficer = int(read_tag(owner, './reportingOwnerRelationship/isOfficer', 0))
+            isTenOwner = int(read_tag(owner, './reportingOwnerRelationship/isTenPercentOwner', 0))
+            isOther = int(read_tag(owner, './reportingOwnerRelationship/isOther', 0))
+            if isDirector == 1:
+                owner = 'Director'
+            elif isOfficer == 1:
+                owner = 'Officer'
+            elif isTenOwner == 1:
+                owner = '10% Owner'
+            elif isOther == 1:
+                owner = 'Other'
+            else:
+                owner = 'Unknown'
 
-    print(l)
+            add_to_df(df, i, rptOwnerName, owner, securityTitle, transactionDate, exercisePrice, exerciseShares, expirationDate, transactionValue)
+    print(df)
     exit()
 
     # Write df to CSV
@@ -82,6 +110,28 @@ def main():
 
     # print df 
     print(df)
+
+def add_to_df(df, i, rptOwnerName, owner, securityTitle, transactionDate, exercisePrice, exerciseShares, expirationDate, transactionValue):
+    df['rptOwnerName'][i] = rptOwnerName
+    df['owner'][i] = owner
+    df['securityTitle'][i] = securityTitle
+    df['transactionDate'][i] = transactionDate
+    df['exercisePrice'][i] = exercisePrice
+    df['exerciseShares'][i] = exerciseShares
+    df['expirationDate'][i] = expirationDate
+    df['transactionValue'][i] = transactionValue
+
+def read_tag(root, path, exc=False):
+    try:
+        v = root.find(path).text
+    except (AttributeError, ValueError) as error:
+        v = exc
+    if v == 'false':
+        v = 0
+    elif v == 'true':
+        v = 1
+    
+    return v
 
 def download_xml(url, tries=1):
     try:
