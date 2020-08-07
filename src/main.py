@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+pd.options.mode.chained_assignment = None  # supress copy warning
 import numpy as np
 import urllib.request
 from xml_parser import XmlParser
@@ -10,78 +11,89 @@ import time
 
 def main():
 
-    ''' Temp Removed to Reduce API calls
-    # Open config file containing private token
-    with open('.\config\credentials.json') as f:
-        credentials = json.load(f)
-    # API Key
-    TOKEN =  credentials["credentials"]["key"]
-    # API Endpoint
-    API = 'https://api.sec-api.io?token=' + TOKEN
 
-    # Create filter parameters to send to the API 
-    filter = "formType:\"4\" AND formType:(NOT \"N-4\") AND formType:(NOT \"4/A\") AND filedAt:[2020-07-31 TO 2020-08-31]"
-    payload = {
-    "query": { "query_string": { "query": filter } },
-    "from": "0",
-    "size": "10000",
-    "sort": [{ "filedAt": { "order": "desc" } }]
-    }
+    # Temp Removed to Reduce API calls
+    # # Open config file containing private token
+    # with open('.\config\credentials.json') as f:
+    #     credentials = json.load(f)
+    # # API Key
+    # TOKEN =  credentials["credentials"]["key"]
+    # # API Endpoint
+    # API = 'https://api.sec-api.io?token=' + TOKEN
 
-    # Format payload to JSON bytes
-    jsondata = json.dumps(payload)
-    jsondataasbytes = jsondata.encode('utf-8')   # needs to be bytes
+    # # Create filter parameters to send to the API 
+    # filter = "formType:\"4\" AND ticker:(NOT \"\") AND formType:(NOT \"N-4\") AND formType:(NOT \"4/A\") AND filedAt:[2020-08-05 TO 2020-08-05]"
+    # payload = {
+    # "query": { "query_string": { "query": filter } },
+    # "from": "0",
+    # "size": "200",
+    # "sort": [{ "filedAt": { "order": "desc" } }]
+    # }
 
-    # Send request 
-    req = urllib.request.Request(API)
+    # # Format payload to JSON bytes
+    # jsondata = json.dumps(payload)
+    # jsondataasbytes = jsondata.encode('utf-8')   # needs to be bytes
 
-    # set the correct HTTP header: Content-Type = application/json
-    req.add_header('Content-Type', 'application/json; charset=utf-8')
-    # set the correct length of your request
-    req.add_header('Content-Length', len(jsondataasbytes))
+    # # Send request 
+    # req = urllib.request.Request(API)
 
-    # send the request to the API
-    response = urllib.request.urlopen(req, jsondataasbytes)
+    # # set the correct HTTP header: Content-Type = application/json
+    # req.add_header('Content-Type', 'application/json; charset=utf-8')
+    # # set the correct length of your request
+    # req.add_header('Content-Length', len(jsondataasbytes))
 
-    # read the response 
-    res_body = response.read()
-    # transform the response into JSON
-    filings = json.loads(res_body.decode("utf-8"))
+    # # send the request to the API
+    # response = urllib.request.urlopen(req, jsondataasbytes)
 
-    # write json response to file.
-    with open('.\data\data.json', 'w') as f:
-        json.dump(filings, f)
-    '''
+    # # read the response 
+    # res_body = response.read()
+    # # transform the response into JSON
+    # filings = json.loads(res_body.decode("utf-8"))
 
+    # # write json response to file.
+    # with open('.\data\data.json', 'w') as f:
+    #     json.dump(filings, f)
+
+
+    # Use saved JSON
     with open('.\\data\\data.json', 'r') as f:
     # with open('..\data\data.json', 'r') as f:
         filings = json.load(f)
 
     # Load results to DataFrame
     df = pd.DataFrame(filings['filings'])
+
     df = df[['id', 'ticker','companyName','companyNameLong','formType','linkToTxt','linkToFilingDetails']]
     for newcol in ['rptOwnerName', 'owner', 'securityTitle', 'transactionDate', 'exercisePrice', 'exerciseShares', 'expirationDate', 'transactionValue']:
         df[newcol] = np.nan
+    col_order = ['ticker','companyName','securityTitle', 'transactionDate', 'exercisePrice', 'exerciseShares', 'expirationDate', 'transactionValue','rptOwnerName', 'owner', 'linkToTxt','linkToFilingDetails']
+    df = df[col_order]
+    df2 = df[0:0]
     for i, row in df.iterrows():
-        print(i)
         xml = df['linkToTxt'].iloc[i]
         xml_root = download_xml(xml)
 
         derivativeTransactions = xml_root.findall("./derivativeTable/derivativeTransaction")
-
-        for t in derivativeTransactions:
+        nonDerivativeTransactions = xml_root.findall("./nonDerivativeTable/nonDerivativeTransaction")
+        allTransactions = derivativeTransactions + nonDerivativeTransactions
+        ctr = 0
+        for t in allTransactions:
             # Share info
             securityTitle = read_tag(t, './securityTitle/value')
             transactionDate = read_tag(t, './transactionDate/value')
             exerciseShares = float(read_tag(t, './transactionAmounts/transactionShares/value'))
             
-            if securityTitle == 'Stock Options':
+            if 'Option' in securityTitle:
                 expirationDate = read_tag(t, './expirationDate/value')
                 exercisePrice = float(read_tag(t, './transactionAmounts/transactionPricePerShare/value'))
             else:
                 expirationDate = ''
                 exercisePrice = 0
             transactionValue = exercisePrice * exerciseShares
+
+            # Ticker
+            ticker_element = xml_root.findall("./issuer")[0]
+            tradingSymbol = read_tag(ticker_element, "./issuerTradingSymbol", '')
 
             # Owner Relationship
             owner = xml_root.findall("./reportingOwner")[0]
@@ -100,27 +112,23 @@ def main():
                 owner = 'Other'
             else:
                 owner = 'Unknown'
-
-            add_to_df(df, i, rptOwnerName, owner, securityTitle, transactionDate, exercisePrice, exerciseShares, expirationDate, transactionValue)
-    print(df)
-    exit()
+            
+            append_to_new_df(df, df2, i, tradingSymbol, rptOwnerName, owner, securityTitle, transactionDate, exercisePrice, exerciseShares, expirationDate, transactionValue)
 
     # Write df to CSV
-    df.to_csv('.\data\data.csv', mode= 'a', index = False, encoding="utf-8", sep='|')
+    df2.to_csv('.\data\data.csv', index = False, encoding="utf-8", sep='|')
 
-    # print df 
-    print(df)
 
-def add_to_df(df, i, rptOwnerName, owner, securityTitle, transactionDate, exercisePrice, exerciseShares, expirationDate, transactionValue):
-    df['rptOwnerName'][i] = rptOwnerName
-    df['owner'][i] = owner
-    df['securityTitle'][i] = securityTitle
-    df['transactionDate'][i] = transactionDate
-    df['exercisePrice'][i] = exercisePrice
-    df['exerciseShares'][i] = exerciseShares
-    df['expirationDate'][i] = expirationDate
-    df['transactionValue'][i] = transactionValue
+def append_to_new_df(df1, df2, i, tradingSymbol, rptOwnerName, owner, securityTitle, transactionDate, exercisePrice, exerciseShares, expirationDate, transactionValue):
+    ticker = df1['ticker'][i]
+    companyName = df1['companyName'][i]
+    linkToTxt = df1['linkToTxt'][i]
+    linkToFilingDetails = df1['linkToFilingDetails'][i]
 
+    df2.loc[-1] = [tradingSymbol,companyName,securityTitle, transactionDate, exercisePrice, exerciseShares, expirationDate, transactionValue, rptOwnerName, owner, linkToTxt, linkToFilingDetails]
+    df2.index = df2.index + 1
+    df2 = df2.sort_index()
+    
 def read_tag(root, path, exc=False):
     try:
         v = root.find(path).text
