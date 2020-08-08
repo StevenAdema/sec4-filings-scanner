@@ -116,7 +116,8 @@ def main():
             append_to_new_df(df, df2, i, tradingSymbol, rptOwnerName, owner, securityTitle, transactionDate, exercisePrice, exerciseShares, expirationDate, transactionValue)
 
     # Write df to CSV
-    df2.to_csv('.\data\data.csv', index = False, encoding="utf-8", sep='|')
+    df2 = df2[df2['expirationDate'] != '']
+    df2.to_csv('.\data\data_options.csv', index = False, encoding="utf-8", sep='|')
 
 
 def append_to_new_df(df1, df2, i, tradingSymbol, rptOwnerName, owner, securityTitle, transactionDate, exercisePrice, exerciseShares, expirationDate, transactionValue):
