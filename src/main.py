@@ -21,7 +21,7 @@ def main():
     API = 'https://api.sec-api.io?token=' + TOKEN
 
     # Create filter parameters to send to the API
-    filter = "formType:\"4\" AND ticker:(NOT \"\") AND formType:(NOT \"N-4\") AND formType:(NOT \"4/A\") AND filedAt:[2020-08-09 TO 2020-08-10]"
+    filter = "formType:\"4\" AND ticker:(NOT \"\") AND formType:(NOT \"N-4\") AND formType:(NOT \"4/A\") AND filedAt:[2020-08-12 TO 2020-08-12]"
     payload = {
         "query": {"query_string": {"query": filter}},
         "from": "0",
@@ -45,9 +45,9 @@ def main():
     response = urllib.request.urlopen(req, jsondataasbytes)
 
     # read the response
-    res_body = response.read()
+    response_body = response.read()
     # transform the response into JSON
-    filings = json.loads(res_body.decode("utf-8"))
+    filings = json.loads(response_body.decode("utf-8"))
 
     # write json response to file.
     with open(r'..\data\data.json', 'w') as f:
@@ -55,8 +55,8 @@ def main():
 
     # Use saved JSON
     # with open('.\\data\\data.json', 'r') as f:
-    # with open(r'..\data\data.json', 'r') as f:
-    #     filings = json.load(f)
+    with open(r'..\data\data.json', 'r') as f:
+        filings = json.load(f)
 
     # Load results to DataFrame
     df = pd.DataFrame(filings['filings'])
@@ -69,13 +69,16 @@ def main():
         df[new_column] = np.nan
 
     df = df[config["dataframe"]["column_order"]]
+    df = df[df['companyName'] != df['rptOwnerName']]
 
     df2 = df[0:0]
     reader.read_sec4_to_dataframe(df, df2)
 
+    df2 = df2[df2['companyName'] != df2['rptOwnerName']]
+
     # Write df to CSV
     # df2 = df2[df2['expirationDate'] != '']
-    df2.to_csv(r'..\data\data_options.csv',
+    df2.to_csv(r'..\data\data.csv',
                index=False, encoding="utf-8", sep='|')
 
 

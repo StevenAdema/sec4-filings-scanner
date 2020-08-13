@@ -30,6 +30,7 @@ def read_sec4_to_dataframe(df, df2, ):
             expirationDate = read_tag(t, './expirationDate/value')
             exercisePrice = float(read_tag(t, './transactionAmounts/transactionPricePerShare/value'))
             transactionValue = exercisePrice * exerciseShares
+            boughtSold = read_tag(t, './transactionAmounts/transactionAcquiredDisposedCode/value')
 
             ticker_element = xml_root.findall("./issuer")[0]
             tradingSymbol = read_tag(
@@ -58,15 +59,15 @@ def read_sec4_to_dataframe(df, df2, ):
                 owner = 'Unknown'
 
             append_to_new_df(df, df2, i, tradingSymbol, rptOwnerName, owner, securityTitle,
-                             transactionDate, exercisePrice, exerciseShares, expirationDate, transactionValue)
+                             transactionDate, boughtSold, exercisePrice, exerciseShares, expirationDate, transactionValue)
 
 
-def append_to_new_df(df1, df2, i, tradingSymbol, rptOwnerName, owner, securityTitle, transactionDate, exercisePrice, exerciseShares, expirationDate, transactionValue):
+def append_to_new_df(df1, df2, i, tradingSymbol, rptOwnerName, owner, securityTitle, transactionDate, boughtSold, exercisePrice, exerciseShares, expirationDate, transactionValue):
     companyName = df1['companyName'][i]
     linkToTxt = df1['linkToTxt'][i]
     linkToFilingDetails = df1['linkToFilingDetails'][i]
 
-    df2.loc[-1] = [tradingSymbol, companyName, securityTitle, transactionDate, exercisePrice,
+    df2.loc[-1] = [tradingSymbol, companyName, securityTitle, transactionDate, boughtSold, exercisePrice,
                    exerciseShares, expirationDate, transactionValue, rptOwnerName, owner, linkToTxt, linkToFilingDetails]
     df2.index = df2.index + 1
     df2 = df2.sort_index()
