@@ -5,7 +5,6 @@ import numpy as np
 import urllib.request
 import xml.etree.cElementTree as ET
 import re
-import time
 import sys
 
 with open(r'..\config\config.json') as f:
@@ -26,11 +25,14 @@ def read_sec4_to_dataframe(df, df2, ):
         for t in allTransactions:
             securityTitle = read_tag(t, './securityTitle/value')
             transactionDate = read_tag(t, './transactionDate/value')
-            exerciseShares = float(read_tag(t, './transactionAmounts/transactionShares/value'))
+            exerciseShares = float(
+                read_tag(t, './transactionAmounts/transactionShares/value'))
             expirationDate = read_tag(t, './expirationDate/value')
-            exercisePrice = float(read_tag(t, './transactionAmounts/transactionPricePerShare/value'))
+            exercisePrice = float(
+                read_tag(t, './transactionAmounts/transactionPricePerShare/value'))
             transactionValue = exercisePrice * exerciseShares
-            boughtSold = read_tag(t, './transactionAmounts/transactionAcquiredDisposedCode/value')
+            boughtSold = read_tag(
+                t, './transactionAmounts/transactionAcquiredDisposedCode/value')
 
             ticker_element = xml_root.findall("./issuer")[0]
             tradingSymbol = read_tag(
@@ -108,7 +110,7 @@ def download_xml(url, tries=1):
         return root
 
 
-def calculate_transaction_amount (xml):
+def calculate_transaction_amount(xml):
     """Example function with PEP 484 type annotations.
 
     Args:
@@ -123,15 +125,18 @@ def calculate_transaction_amount (xml):
     if xml is None:
         return total
 
-    nonDerivativeTransactions = xml.findall("./nonDerivativeTable/derivativeTransaction")
+    nonDerivativeTransactions = xml.findall(
+        "./nonDerivativeTable/derivativeTransaction")
 
     for t in nonDerivativeTransactions:
         # D for disposed or A for acquired
-        action = t.find('./transactionAmounts/transactionAcquiredDisposedCode/value').text
+        action = t.find(
+            './transactionAmounts/transactionAcquiredDisposedCode/value').text
         # number of shares disposed/acquired
         shares = t.find('./transactionAmounts/transactionShares/value').text
         # price
-        priceRaw = t.find('./transactionAmounts/transactionPricePerShare/value')
+        priceRaw = t.find(
+            './transactionAmounts/transactionPricePerShare/value')
         price = 0 if priceRaw is None else priceRaw.text
         # set prefix to -1 if derivatives were disposed. set prefix to 1 if derivates were acquired.
         prefix = -1 if action == 'D' else 1

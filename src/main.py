@@ -4,6 +4,10 @@ import pandas as pd
 pd.options.mode.chained_assignment = None  # supress copy warning
 import numpy as np
 import urllib.request
+np.set_printoptions(linewidth=300)
+pd.set_option('display.max_columns', None)  
+pd.set_option('display.expand_frame_repr', False)
+pd.set_option('max_colwidth', 50)
 
 
 def main():
@@ -11,17 +15,18 @@ def main():
     Main method to run the script
     """
 
-    # Temp Removed to Reduce API calls
-    # # Open config file containing private token
+    # Open config file containing private token
     with open(r'..\config\config.json') as f:
         config = json.load(f)
+
+
     # API Key
     TOKEN = config["credentials"]["key"]
     # API Endpoint
     API = 'https://api.sec-api.io?token=' + TOKEN
 
     # Create filter parameters to send to the API
-    filter = "formType:\"4\" AND ticker:(NOT \"\") AND formType:(NOT \"N-4\") AND formType:(NOT \"4/A\") AND filedAt:[2020-08-12 TO 2020-08-12]"
+    filter = "formType:\"4\" AND ticker:(NOT \"\") AND formType:(NOT \"N-4\") AND formType:(NOT \"4/A\") AND filedAt:[2020-08-21 TO 2020-08-21T17:19:41-04:00]"
     payload = {
         "query": {"query_string": {"query": filter}},
         "from": "0",
@@ -31,9 +36,10 @@ def main():
 
     # Format payload to JSON bytes
     jsondata = json.dumps(payload)
-    jsondataasbytes = jsondata.encode('utf-8')   # needs to be bytes
+    jsondataasbytes = jsondata.encode('utf-8')
 
     # Send request
+    print('sending request')
     req = urllib.request.Request(API)
 
     # set the correct HTTP header: Content-Type = application/json
@@ -54,10 +60,10 @@ def main():
         json.dump(filings, f)
 
     # Use saved JSON
-    # with open('.\\data\\data.json', 'r') as f:
     with open(r'..\data\data.json', 'r') as f:
         filings = json.load(f)
 
+    print('generate DataFrame')
     # Load results to DataFrame
     df = pd.DataFrame(filings['filings'])
 
@@ -72,6 +78,7 @@ def main():
     df = df[df['companyName'] != df['rptOwnerName']]
 
     df2 = df[0:0]
+    print('read to new DataFrame')
     reader.read_sec4_to_dataframe(df, df2)
 
     df2 = df2[df2['companyName'] != df2['rptOwnerName']]
