@@ -88,6 +88,10 @@ def read_tag(root, path, exc=np.nan):
     return v
 
 
+def get_only_bought(df2):
+    df = df2.groupby(['ticker', 'transactionDate']).agg('boughtSold')
+    print(df)
+
 def download_xml(url, tries=1):
     try:
         response = urllib.request.urlopen(url)
