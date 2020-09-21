@@ -70,6 +70,7 @@ def read_tag(root, path, exc=np.nan):
         v = root.find(path).text
     except (AttributeError, ValueError) as error:
         v = exc
+        print(error)
     if v == 'false':
         v = 0
     elif v == 'true':

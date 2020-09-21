@@ -21,7 +21,7 @@ def main():
 
     # Url for API call
     # filings = sa.get_filings()
-    filings = sa.get_filings_over_period('2020-01-01', '2020-01-03')
+    filings = sa.get_filings_over_period('2020-01-02', '2020-01-03')
 
     print('generate DataFrame')
     # Load results to DataFrame
@@ -29,6 +29,7 @@ def main():
 
     # Create DataFrame
     df = df[config['dataframe']['columns_shortlist']]
+    # df = df.sort_values(by='filedAt')
     print(df.filedAt)
     exit()
 

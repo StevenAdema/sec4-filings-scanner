@@ -13,7 +13,7 @@ def get_filings():
     API = 'https://api.sec-api.io?token=' + TOKEN
 
     # Create filter parameters to send to the API
-    filter = "formType:\"4\" AND ticker:(NOT \"\") AND formType:(NOT \"N-4\") AND formType:(NOT \"4/A\") AND filedAt:[2019-09-10 TO 2019-09-10]"
+    filter = "formType:\"4\" AND ticker:(NOT \"\") AND formType:(NOT \"N-4\") AND formType:(NOT \"4/A\") AND filedAt:[2019-09-10 TO 2019-09-12]"
     payload = {
         "query": {"query_string": {"query": filter}},
         "from": "0",
