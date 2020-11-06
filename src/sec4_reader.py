@@ -1,12 +1,12 @@
 import json
 import pandas as pd
-pd.options.mode.chained_assignment = None  # supress copy warning
 import numpy as np
 import urllib.request
 import xml.etree.cElementTree as ET
 import time
 import re
 import sys
+pd.options.mode.chained_assignment = None  # supress copy warning
 
 with open(r'..\config\config.json') as f:
     config = json.load(f)

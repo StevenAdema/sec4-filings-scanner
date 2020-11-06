@@ -2,8 +2,9 @@ import json
 import sec4_reader as reader
 import sec_api as sa
 import pandas as pd
-pd.options.mode.chained_assignment = None  # supress copy warning
 import numpy as np
+import db
+pd.options.mode.chained_assignment = None  # supress copy warning
 np.set_printoptions(linewidth=300)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.expand_frame_repr', False)
@@ -21,7 +22,7 @@ def main():
 
     # Url for API call
     # filings = sa.get_filings()
-    filings = sa.get_filings_over_period('2020-01-02', '2020-01-03')
+    filings = sa.get_filings_over_period('2020-09-09', '2020-09-09')
 
     print('generate DataFrame')
     # Load results to DataFrame
@@ -30,8 +31,6 @@ def main():
     # Create DataFrame
     df = df[config['dataframe']['columns_shortlist']]
     # df = df.sort_values(by='filedAt')
-    print(df.filedAt)
-    exit()
 
     # Add columns additional columns
     for new_column in config['dataframe']['columns_new']:
