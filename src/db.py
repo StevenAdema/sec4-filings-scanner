@@ -2,14 +2,17 @@ import pyodbc
 import sqlalchemy as sa
 
 
-engine = sa.create_engine(r'mssql+pyodbc://PC\SQLEXPRESS/sec4?driver=SQL+Server+Native+Client+11.0')
+engine = sa.create_engine(r'mssql+pyodbc://PC\SQLEXPRESS/insider_screener?driver=SQL+Server+Native+Client+11.0')
 
 conn = pyodbc.connect(
     "Driver={SQL Server Native Client 11.0};"
     r"Server=PC\SQLEXPRESS;"
-    "Database=sec4;"
+    "Database=insider_screener;"
     "Trusted_Connection=yes;"
 )
+cursor = conn.cursor()
+cursor.close()
+conn.close()
 
 
 def read(conn):
@@ -21,4 +24,6 @@ def read(conn):
 
 
 def write_to_table(df):
-    df.to_sql("sec4", engine)
+    cursor.execute('DROP TABLE IF EXISTS filings')
+    print('table dropped. writing to filings')
+    df.to_sql("filings", engine)

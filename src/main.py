@@ -22,7 +22,7 @@ def main():
 
     # Url for API call
     # filings = sa.get_filings()
-    filings = sa.get_filings_over_period('2020-09-09', '2020-09-09')
+    filings = sa.get_filings_over_period('2020-11-05', '2020-11-05')
 
     print('generate DataFrame')
     # Load results to DataFrame
@@ -51,11 +51,9 @@ def main():
     # df2 = pd.read_pickle(r'..\data\data.pkl')
 
     df2 = reader.get_only_bought(df2)
+    print('writing to table')
+    db.write_to_table(df2)
 
-    print(df2)
-
-    # Write df to CSV
-    # df2 = df2[df2['expirationDate'] != '']
     df2.to_csv(r'..\data\data.csv',
                index=False, encoding='utf-8', sep='|')
 
