@@ -1,62 +1,15 @@
 import json
-import sec4_reader as reader
-import sec_api as sa
 import pandas as pd
 import numpy as np
-import db
-pd.options.mode.chained_assignment = None  # supress copy warning
-np.set_printoptions(linewidth=300)
-pd.set_option('display.max_columns', None)
-pd.set_option('display.expand_frame_repr', False)
-pd.set_option('max_colwidth', 30)
+from datetime import date
+import requests
+from secedgar import filings
+from secedgar import *
+import requests
 
-
-def main():
-    """
-    Main method to run the script
-    """
-
-    # Open config file containing private token
-    with open(r'..\config\config.json') as f:
-        config = json.load(f)
-
-    # Url for API call
-    # filings = sa.get_filings()
-    filings = sa.get_filings_over_period('2020-11-05', '2020-11-05')
-
-    print('generate DataFrame')
-    # Load results to DataFrame
-    df = pd.DataFrame(filings['filings'])
-
-    # Create DataFrame
-    df = df[config['dataframe']['columns_shortlist']]
-    # df = df.sort_values(by='filedAt')
-
-    # Add columns additional columns
-    for new_column in config['dataframe']['columns_new']:
-        df[new_column] = np.nan
-
-    df = df[config['dataframe']['column_order']]
-    df = df[df['companyName'] != df['rptOwnerName']]
-
-    print('read to new DataFrame')
-    df = reader.filter_has_ticker(df)
-    df2 = df[0:0]
-    print(df.shape)
-    reader.read_sec4_to_dataframe(df, df2)
-    print('read')
-    print(df2.shape)
-
-    # df2.to_pickle(r'..\data\data.pkl')
-    # df2 = pd.read_pickle(r'..\data\data.pkl')
-
-    df2 = reader.get_only_bought(df2)
-    print('writing to table')
-    db.write_to_table(df2)
-
-    df2.to_csv(r'..\data\data.csv',
-               index=False, encoding='utf-8', sep='|')
-
-
-if __name__ == '__main__':
-    main()
+# secedgar creates correct filing object for given arguments
+# this will fetch the first 50 filings found over the time span
+limit_to_form4 = lambda f: f.form_type.lower() == "4"
+daily_filings_limited = secedgar.DailyFilings(start_date=date(2020, 1 ,3),
+                                entry_filter=limit_to_form4,)
+daily_filings_limited.save("C:/Users/Steven/Documents/Projects/sec4-filings-scanner/data")
